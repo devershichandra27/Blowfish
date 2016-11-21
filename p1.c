@@ -152,20 +152,6 @@ static const uint sBox[4][256] =
 	}
 };
 
-void f (unsigned char * input)
-{
-	//input will be strictly of 32 bits (4 bytes)
-	unsigned char * output = malloc(4);
-	//putting least significant bits through sBox[0]
-	output = sBox[0][input >> 24 ];
-	output += sBox[1] [(input >> 16) & 0xff];
-	output ^= sBox[2] [(input >> 8) & 0xff];
-	output += sBox[3] [input & 0xff];
-
-	input = output;
-	free (output);
-
-}
 
 void xor(uint p[18], unsigned char * key)
 {

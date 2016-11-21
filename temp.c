@@ -1,18 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define uint unsigned long
-
-
-static  uint p[] = 
-{
-	0x243F6A88,0x85A308D3,0x13198A2E,0x03707344,0xA4093822,0x299F31D0,0x082EFA98,0xEC4E6C89,
-   	0x452821E6,0x38D01377,0xBE5466CF,0x34E90C6C,0xC0AC29B7,0xC97C50DD,0x3F84D5B5,0xB5470917,
-   	0x9216D5D9,0x8979FB1B
-};
-
-static const uint sBox[4][256] = 
+static const unsigned long sBox[4][256] = 
 {
 	{
 	   0xD1310BA6,0x98DFB5AC,0x2FFD72DB,0xD01ADFB7,0xB8E1AFED,0x6A267E96,0xBA7C9045,0xF12C7F99,
@@ -151,37 +138,12 @@ static const uint sBox[4][256] =
 	   0x90D4F869,0xA65CDEA0,0x3F09252D,0xC208E69F,0xB74E6132,0xCE77E25B,0x578FDFE3,0x3AC372E6
 	}
 };
-
-void f (unsigned char * input)
-{
-	//input will be strictly of 32 bits (4 bytes)
-	unsigned char * output = malloc(4);
-	//putting least significant bits through sBox[0]
-	output = sBox[0][input >> 24 ];
-	output += sBox[1] [(input >> 16) & 0xff];
-	output ^= sBox[2] [(input >> 8) & 0xff];
-	output += sBox[3] [input & 0xff];
-
-	input = output;
-	free (output);
-
-}
-
-void xor(uint p[18], unsigned char * key)
-{
-	for (int i = 0, j=0; i < 18; ++i, j+=4)
-	{
-		p[i] ^= (((key[j%(strlen(key))])<<24) | ((key[(j+1)%(strlen(key))])<<16) | ((key[(j+2)%(strlen(key))])<<8) | ((key[(j+3)%(strlen(key))])));
-	}
-}
-
-
 int main(int argc, char const *argv[])
 {
-	unsigned char * key ="This is an message";
-	xor(p, key);
-	for (int i = 0; i < 18; ++i)
-	{
-		printf("%lx \n", p[i]);
-	}printf("\n");
+	unsigned long input = 0x2354768d;
+	printf("%08lX\n", (input>>24));
+	printf("%08lX\n", (input>>16) & 0xff);
+	printf("%08lX\n", (input>>8) & 0xff);
+	printf("%08lX\n", (input) & 0xff);
+	return 0;
 }
