@@ -1,18 +1,15 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-
+#include <stdlib.h>
 #define uint unsigned long
-
-
-static  uint p[] = 
+uint default_p[] = 
 {
 	0x243F6A88,0x85A308D3,0x13198A2E,0x03707344,0xA4093822,0x299F31D0,0x082EFA98,0xEC4E6C89,
    	0x452821E6,0x38D01377,0xBE5466CF,0x34E90C6C,0xC0AC29B7,0xC97C50DD,0x3F84D5B5,0xB5470917,
    	0x9216D5D9,0x8979FB1B
 };
 
-static const uint sBox[4][256] = 
+uint default_sBox[4][256] = 
 {
 	{
 	   0xD1310BA6,0x98DFB5AC,0x2FFD72DB,0xD01ADFB7,0xB8E1AFED,0x6A267E96,0xBA7C9045,0xF12C7F99,
@@ -152,36 +149,130 @@ static const uint sBox[4][256] =
 	}
 };
 
-void f (unsigned char * input)
+typedef struct
 {
-	//input will be strictly of 32 bits (4 bytes)
-	unsigned char * output = malloc(4);
-	//putting least significant bits through sBox[0]
-	output = sBox[0][input >> 24 ];
-	output += sBox[1] [(input >> 16) & 0xff];
-	output ^= sBox[2] [(input >> 8) & 0xff];
-	output += sBox[3] [input & 0xff];
+	uint p[18];
+	uint s[4][256];
+} KeyStruct;
 
-	input = output;
-	free (output);
-
+unsigned long f (KeyStruct *ptr, uint input)
+{
+	unsigned short a, b, c, d; //temporary variables to hold individual bytes of input
+	uint temp = 0x00;
+	d = (unsigned short)(input &0xff);
+	input >>=8;
+	c = (unsigned short)(input &0xff);
+	input >>=16;
+	b = (unsigned short)(input &0xff);
+	input >>=24;
+	a = (unsigned short)(input &0xff);
+	temp  = ptr->s[0][a] + ptr->s[1][b];
+	temp ^= ptr->s[2][c];
+	temp += ptr->s[3][d];
+	return temp;
+		
 }
-
-void xor(uint p[18], unsigned char * key)
+void BlowfishEncryption(KeyStruct *ptr, uint *left, uint *right)
 {
-	for (int i = 0, j=0; i < 18; ++i, j+=4)
+	uint leftSide = *left, rightSide = *right;
+	uint temp;
+	for (int i = 0; i < 16; ++i)
 	{
-		p[i] ^= (((key[j%(strlen(key))])<<24) | ((key[(j+1)%(strlen(key))])<<16) | ((key[(j+2)%(strlen(key))])<<8) | ((key[(j+3)%(strlen(key))])));
+		leftSide ^= ptr->p[i];
+		rightSide  ^= f(ptr, leftSide);
+		temp = leftSide;
+		leftSide = rightSide;
+		rightSide = temp; 
 	}
+	//unswapping for last round
+	temp = leftSide;
+	leftSide = rightSide;
+	rightSide = temp;
+
+	rightSide ^= ptr->p[16];
+	leftSide ^= ptr->p[17];
+
+	*left = leftSide;
+	*right = rightSide;
+
 }
-
-
-int main(int argc, char const *argv[])
+void keyExpansion(KeyStruct *ptr, unsigned char key[8])
 {
-	unsigned char * key ="This is an message";
-	xor(p, key);
+	uint leftSide, rightSide, temp=0x00;
 	for (int i = 0; i < 18; ++i)
 	{
-		printf("%lx \n", p[i]);
-	}printf("\n");
+		ptr->p[i] = default_p[i];
+	}
+	for (int i = 0; i < 4; ++i)
+	{
+		for (int j = 0; j < 256; ++j)
+		{
+			ptr->s[i][j] = default_sBox[i][j];
+		}
+	}
+	int len=0;
+	for (int i = 0; i < 18; ++i)
+	{
+		for (int j = 0; j < 4; ++j)
+		{
+			temp = ((temp <<8) |key[len%8]);
+			len++;
+		}
+		ptr->p[i] = default_p[i] ^ temp;
+	}
+
+	leftSide = 0x00;
+	rightSide = 0x00;
+
+	for (int i = 0; i < 18; i+=2)
+	{
+		BlowfishEncryption(ptr, &leftSide, &rightSide);
+		ptr->p[i] = leftSide;
+		ptr->p[i+1] = rightSide;
+	}
+
+	for (int i = 0; i < 4; ++i)
+	{
+		for (int j = 0; j < 256; j+=2)
+		{
+			BlowfishEncryption(ptr, &leftSide, &rightSide);
+			ptr->s[i][j] = leftSide;
+			ptr->s[i][j+1] = rightSide;
+		}
+	}
+}
+void BlowfishDecryption(KeyStruct *ptr, uint * left, uint * right)
+{
+	uint  leftSide = *left, rightSide = *right, temp;
+
+	for (int i = 17; i > 1; --i)
+	{
+		leftSide ^= ptr->p[i];
+		rightSide ^= f(ptr, leftSide);
+		temp = leftSide;
+		leftSide = rightSide;
+		rightSide = temp;
+	}
+	//unswapping for last round;
+	temp = leftSide;
+	leftSide = rightSide;
+	rightSide = temp;
+
+	leftSide ^= ptr->p[0];
+	rightSide ^= ptr->p[1];
+
+	*left = leftSide;
+	*right = rightSide;
+}
+int main(int argc, char const *argv[])
+{
+	unsigned char  key[] = "Message"; ///enter an 64bit key here
+	uint  leftplainText = 0x73884230; 
+	uint  rightplainText = 0x2481156463;
+	KeyStruct ptr;
+	keyExpansion(&ptr, key);
+	BlowfishEncryption(&ptr, &leftplainText, &rightplainText);
+	printf("%lx\n", leftplainText);
+	BlowfishDecryption(&ptr, &leftplainText, &rightplainText);
+	printf("%lx\n", leftplainText);
 }
