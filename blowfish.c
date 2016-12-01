@@ -196,7 +196,7 @@ void BlowfishEncryption(KeyStruct *ptr, uint *left, uint *right)
 	*right = rightSide;
 
 }
-void keyExpansion(KeyStruct *ptr, unsigned char key[8])
+void keyExpansionBlowfish(KeyStruct *ptr, unsigned char key[8])
 {
 	uint leftSide, rightSide, temp=0x00;
 	for (int i = 0; i < 18; ++i)
