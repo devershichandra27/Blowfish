@@ -264,15 +264,3 @@ void BlowfishDecryption(KeyStruct *ptr, uint * left, uint * right)
 	*left = leftSide;
 	*right = rightSide;
 }
-int main(int argc, char const *argv[])
-{
-	unsigned char  key[] = "Message"; ///enter an 64bit key here
-	uint  leftplainText = 0x73884230; 
-	uint  rightplainText = 0x2481156463;
-	KeyStruct ptr;
-	keyExpansion(&ptr, key);
-	BlowfishEncryption(&ptr, &leftplainText, &rightplainText);
-	printf("%lx\n", leftplainText);
-	BlowfishDecryption(&ptr, &leftplainText, &rightplainText);
-	printf("%lx\n", leftplainText);
-}
